@@ -8,22 +8,24 @@
 #define screenSizeY 480 //縦スクリーンサイズ
 
 #define stepSizeMouse 5 //ネズミの移動量
-#define stepSizeCat 4 //猫の移動量
+#define stepSizeCat 2 //猫の移動量
 
-#define getCheeseRange 45 //チーズの取得範囲
+#define getCheeseRange 50 //チーズの取得範囲
 #define getMouseRange 20 //ネズミの捕獲範囲
+#define touchExitRange 30 //出口の接触範囲
 
 //猫の移動処理
-void MoveCat(int* catCoordX, int* catCoordY, int mouseCoordX, int mouseCoordY) {
+void MoveCat(int* catCoordX, int* catCoordY, int mouseCoordX, int mouseCoordY, int currPoint) {
 	double disXY = abs(*catCoordX - mouseCoordX) + abs(*catCoordY - mouseCoordY); //X, Yの合計距離
+	int upSpeed = currPoint / 5; //速度の上昇量
 
 	//X, Yの移動割合
 	double moveX = (*catCoordX - mouseCoordX) / disXY;
 	double moveY = (*catCoordY - mouseCoordY) / disXY;
 
 	//X, Yの移動量
-	*catCoordX -= moveX * stepSizeCat;
-	*catCoordY -= moveY * stepSizeCat;
+	*catCoordX -= moveX * (stepSizeCat + upSpeed);
+	*catCoordY -= moveY * (stepSizeCat + upSpeed);
 }
 
 //チーズの取得判定
@@ -40,6 +42,16 @@ int IsGetCheese(int mouseCoordX, int mouseCoordY, int cheeseCoordX, int cheeseCo
 int IsGetMouse(int mouseCoordX, int mouseCoordY, int catCoordX, int catCoordY) {
 	if (abs(mouseCoordX - catCoordX) < getMouseRange && abs(mouseCoordY - catCoordY) < getMouseRange) {
 		return 1; //ゲームオーバー
+	}
+	else {
+		return 0;
+	}
+}
+
+//出口との接触判定
+int IsTouchExit(int mouseCoordX, int mouseCoordY, int sizeExitX, int sizeExitY) {
+	if (mouseCoordX > (screenSizeX - sizeExitX - touchExitRange) && mouseCoordY > (screenSizeY - sizeExitY - touchExitRange)) {
+		return 1; //ゲームクリア
 	}
 	else {
 		return 0;
@@ -66,16 +78,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	int mouse, mouseCoordX, mouseCoordY, sizeMouseX, sizeMouseY;
 	int cat, catCoordX, catCoordY, sizeCatX, sizeCatY;
 	int cheese, cheeseCoordX, cheeseCoordY, sizeCheeseX, sizeCheeseY;
+	int exit, sizeExitX, sizeExitY;
 
 	//画像をメモリにロード
 	mouse = LoadGraph("ネズミ.jpg");
 	cat = LoadGraph("猫.jpg");
 	cheese = LoadGraph("チーズ.jpg");
+	exit = LoadGraph("出口.jpg");
 
 	//画像サイズを取得
 	GetGraphSize(mouse, &sizeMouseX, &sizeMouseY);
 	GetGraphSize(cat, &sizeCatX, &sizeCatY);
 	GetGraphSize(cheese, &sizeCheeseX, &sizeCheeseY);
+	GetGraphSize(exit, &sizeExitX, &sizeExitY);
 
 	//座標初期化
 	mouseCoordX = 0;
@@ -104,9 +119,9 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		ClearDrawScreen();
 
 		//猫の移動処理
-		MoveCat(&catCoordX, &catCoordY, mouseCoordX, mouseCoordY);
+		MoveCat(&catCoordX, &catCoordY, mouseCoordX, mouseCoordY, currPoint);
 
-		//ネズミの移動処理
+		//移動処理
 		if (CheckHitKey(KEY_INPUT_LEFT) == 1) {
 			//左移動
 			mouseCoordX -= stepSizeMouse;
@@ -161,8 +176,8 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		//チーズの再生成
 		if (getCheeseFlag == 1) {
 			currPoint++;
-			cheeseCoordX = rand() % (screenSizeX - sizeCheeseX);
-			cheeseCoordY = rand() % (screenSizeY - sizeCheeseY);
+			cheeseCoordX = rand() % (screenSizeX - sizeCheeseX - getCheeseRange);
+			cheeseCoordY = rand() % (screenSizeY - sizeCheeseY - getCheeseRange);
 		}
 
 		//文字列の表示
@@ -172,6 +187,26 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		DrawGraph(mouseCoordX, mouseCoordY, mouse, TRUE);
 		DrawGraph(catCoordX, catCoordY, cat, TRUE);
 		DrawGraph(cheeseCoordX, cheeseCoordY, cheese, TRUE);
+
+		//ポイントが10を超えた場合、出口が出現
+		if (currPoint >= 10) {
+			DrawGraph(screenSizeX - sizeExitX, screenSizeY - sizeExitY, exit, TRUE);
+
+			//出口との接触判定
+			int touchExitFlag = 0;
+			touchExitFlag = IsTouchExit(mouseCoordX, mouseCoordY, sizeExitX, sizeExitY);
+
+			//ゲームクリア
+			if (touchExitFlag == 1) {
+				//ゲームクリア表示
+				DrawFormatString(screenSizeX / 2 - 60, screenSizeY / 2, charaColor, "ゲームクリア\n得点：%d\n\nPRESS ANY KEY", currPoint);
+				ScreenFlip();
+
+				//ゲーム終了
+				WaitKey();
+				break;
+			}
+		}
 
 		//スクリーンをコピー
 		ScreenFlip();
