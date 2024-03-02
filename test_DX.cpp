@@ -15,11 +15,11 @@
 
 //猫の移動処理
 void MoveCat(int* catCoordX, int* catCoordY, int mouseCoordX, int mouseCoordY) {
-	double moveSum = abs(*catCoordX - mouseCoordX) + abs(*catCoordY - mouseCoordY); //X, Yの合計距離
+	double disXY = abs(*catCoordX - mouseCoordX) + abs(*catCoordY - mouseCoordY); //X, Yの合計距離
 
 	//X, Yの移動割合
-	double moveX = (*catCoordX - mouseCoordX) / moveSum;
-	double moveY = (*catCoordY - mouseCoordY) / moveSum;
+	double moveX = (*catCoordX - mouseCoordX) / disXY;
+	double moveY = (*catCoordY - mouseCoordY) / disXY;
 
 	//X, Yの移動量
 	*catCoordX -= moveX * stepSizeCat;
