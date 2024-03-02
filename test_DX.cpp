@@ -106,7 +106,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		//猫の移動処理
 		MoveCat(&catCoordX, &catCoordY, mouseCoordX, mouseCoordY);
 
-		//移動処理
+		//ネズミの移動処理
 		if (CheckHitKey(KEY_INPUT_LEFT) == 1) {
 			//左移動
 			mouseCoordX -= stepSizeMouse;
