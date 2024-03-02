@@ -4,9 +4,47 @@
 #include "DxLib.h"
 #include "time.h"
 
-#define screenSizeX 640
-#define screenSizeY 480
-#define stepSize 10
+#define screenSizeX 640 //横スクリーンサイズ
+#define screenSizeY 480 //縦スクリーンサイズ
+
+#define stepSizeMouse 5 //ネズミの移動量
+#define stepSizeCat 4 //猫の移動量
+
+#define getCheeseRange 45 //チーズの取得範囲
+#define getMouseRange 20 //ネズミの捕獲範囲
+
+//猫の移動処理
+void MoveCat(int* catCoordX, int* catCoordY, int mouseCoordX, int mouseCoordY) {
+	double moveSum = abs(*catCoordX - mouseCoordX) + abs(*catCoordY - mouseCoordY); //X, Yの合計距離
+
+	//X, Yの移動割合
+	double moveX = (*catCoordX - mouseCoordX) / moveSum;
+	double moveY = (*catCoordY - mouseCoordY) / moveSum;
+
+	//X, Yの移動量
+	*catCoordX -= moveX * stepSizeCat;
+	*catCoordY -= moveY * stepSizeCat;
+}
+
+//チーズの取得判定
+int IsGetCheese(int mouseCoordX, int mouseCoordY, int cheeseCoordX, int cheeseCoordY) {
+	if (abs(mouseCoordX - cheeseCoordX) < getCheeseRange && abs(mouseCoordY - cheeseCoordY) < getCheeseRange) {
+		return 1; //再生成
+	}
+	else {
+		return 0;
+	}
+}
+
+//ネズミの捕獲判定（ゲームオーバー判定）
+int IsGetMouse(int mouseCoordX, int mouseCoordY, int catCoordX, int catCoordY) {
+	if (abs(mouseCoordX - catCoordX) < getMouseRange && abs(mouseCoordY - catCoordY) < getMouseRange) {
+		return 1; //ゲームオーバー
+	}
+	else {
+		return 0;
+	}
+}
 
 int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
 	//全画面表示の終了
@@ -46,14 +84,14 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	catCoordX = screenSizeX - sizeCatX;
 	catCoordY = screenSizeY - sizeCatY;
 
-	cheeseCoordX = rand() % screenSizeX;
-	cheeseCoordY = rand() % screenSizeY;
+	cheeseCoordX = rand() % (screenSizeX - sizeCheeseX);
+	cheeseCoordY = rand() % (screenSizeY - sizeCheeseY);
 
 	//文字列の表示
 	int charaColor;
 	charaColor = GetColor(255, 255, 255); //白
 
-	DrawFormatString(screenSizeX / 2 - 60, screenSizeY / 2, charaColor,  "PRESS ANY BUTTOM");
+	DrawFormatString(screenSizeX / 2 - 60, screenSizeY / 2, charaColor,  "PRESS ANY KEY");
 	ScreenFlip();
 
 	//ゲームスタート待機
@@ -65,22 +103,25 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		//スクリーンクリア
 		ClearDrawScreen();
 
+		//猫の移動処理
+		MoveCat(&catCoordX, &catCoordY, mouseCoordX, mouseCoordY);
+
 		//移動処理
 		if (CheckHitKey(KEY_INPUT_LEFT) == 1) {
 			//左移動
-			mouseCoordX -= stepSize;
+			mouseCoordX -= stepSizeMouse;
 		}
-		if (CheckHitKey(KEY_INPUT_RIGHT) == 1) {
+		else if (CheckHitKey(KEY_INPUT_RIGHT) == 1) {
 			//右移動
-			mouseCoordX += stepSize;
+			mouseCoordX += stepSizeMouse;
 		}
-		if(CheckHitKey(KEY_INPUT_UP) == 1) {
+		else if(CheckHitKey(KEY_INPUT_UP) == 1) {
 			//上移動
-			mouseCoordY -= stepSize;
+			mouseCoordY -= stepSizeMouse;
 		}
-		if (CheckHitKey(KEY_INPUT_DOWN) == 1) {
+		else if (CheckHitKey(KEY_INPUT_DOWN) == 1) {
 			//下移動
-			mouseCoordY += stepSize;
+			mouseCoordY += stepSizeMouse;
 		}
 		
 		//スクリーン外に出ないようチェック
@@ -98,13 +139,39 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			mouseCoordY = screenSizeY - sizeMouseY;
 		}
 		
+		//ネズミの捕獲判定
+		int getMouseFlag = 0;
+		getMouseFlag = IsGetMouse(mouseCoordX, mouseCoordY, catCoordX, catCoordY);
+
+		//ゲームオーバー
+		if (getMouseFlag == 1) {
+			//ゲームオーバー表示
+			DrawFormatString(screenSizeX / 2 - 60, screenSizeY / 2, charaColor, "ゲームオーバー\n得点：%d\n\nPRESS ANY KEY", currPoint);
+			ScreenFlip();
+
+			//ゲーム終了
+			WaitKey();
+			break;
+		}
+
+		//チーズの取得判定
+		int getCheeseFlag = 0;
+		getCheeseFlag = IsGetCheese(mouseCoordX, mouseCoordY, cheeseCoordX, cheeseCoordY);
+
+		//チーズの再生成
+		if (getCheeseFlag == 1) {
+			currPoint++;
+			cheeseCoordX = rand() % (screenSizeX - sizeCheeseX);
+			cheeseCoordY = rand() % (screenSizeY - sizeCheeseY);
+		}
+
 		//文字列の表示
 		DrawFormatString(0, screenSizeY - 60, charaColor, "得点：%d", currPoint);
 
 		//画像の表示
-		DrawGraph(mouseCoordX, mouseCoordY, mouse, FALSE);
-		DrawGraph(catCoordX, catCoordY, cat, FALSE);
-		DrawGraph(cheeseCoordX, cheeseCoordY, cheese, FALSE);
+		DrawGraph(mouseCoordX, mouseCoordY, mouse, TRUE);
+		DrawGraph(catCoordX, catCoordY, cat, TRUE);
+		DrawGraph(cheeseCoordX, cheeseCoordY, cheese, TRUE);
 
 		//スクリーンをコピー
 		ScreenFlip();
