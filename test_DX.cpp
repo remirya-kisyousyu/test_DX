@@ -58,17 +58,9 @@ int IsTouchExit(int mouseCoordX, int mouseCoordY, int sizeExitX, int sizeExitY) 
 	}
 }
 
-int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
-	//全画面表示の終了
-	ChangeWindowMode(TRUE);
-
-	//乱数生成用
-	srand((unsigned int)time(NULL));
-	
-	//DXライブラリ初期化
-	if (DxLib_Init() == -1) return -1;
-
-	//画面の設定
+//全体管理関数
+void GameManager() {
+	//スクリーンの設定
 	SetGraphMode(screenSizeX, screenSizeY, 16);
 
 	//描画先を裏画面にセット
@@ -99,14 +91,19 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 	catCoordX = screenSizeX - sizeCatX;
 	catCoordY = screenSizeY - sizeCatY;
 
-	cheeseCoordX = rand() % (screenSizeX - sizeCheeseX);
-	cheeseCoordY = rand() % (screenSizeY - sizeCheeseY);
+	cheeseCoordX = rand() % (screenSizeX - sizeCheeseX - getCheeseRange);
+	cheeseCoordY = rand() % (screenSizeY - sizeCheeseY - getCheeseRange);
 
-	//文字列の表示
+	//文字列、画像の表示
 	int charaColor;
 	charaColor = GetColor(255, 255, 255); //白
 
-	DrawFormatString(screenSizeX / 2 - 60, screenSizeY / 2, charaColor,  "PRESS ANY KEY");
+	DrawFormatString(screenSizeX / 2 - 60, screenSizeY / 2, charaColor, "PRESS ANY KEY");
+	DrawGraph(mouseCoordX, mouseCoordY, mouse, TRUE);
+	DrawGraph(catCoordX, catCoordY, cat, TRUE);
+	DrawGraph(cheeseCoordX, cheeseCoordY, cheese, TRUE);
+
+	//表画面の表示
 	ScreenFlip();
 
 	//ゲームスタート待機
@@ -130,7 +127,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			//右移動
 			mouseCoordX += stepSizeMouse;
 		}
-		else if(CheckHitKey(KEY_INPUT_UP) == 1) {
+		else if (CheckHitKey(KEY_INPUT_UP) == 1) {
 			//上移動
 			mouseCoordY -= stepSizeMouse;
 		}
@@ -138,7 +135,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 			//下移動
 			mouseCoordY += stepSizeMouse;
 		}
-		
+
 		//スクリーン外に出ないようチェック
 		if (mouseCoordX < 0) {
 			mouseCoordX = 0;
@@ -153,7 +150,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		else if (mouseCoordY > screenSizeY - sizeMouseY) {
 			mouseCoordY = screenSizeY - sizeMouseY;
 		}
-		
+
 		//ネズミの捕獲判定
 		int getMouseFlag = 0;
 		getMouseFlag = IsGetMouse(mouseCoordX, mouseCoordY, catCoordX, catCoordY);
@@ -166,7 +163,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 			//ゲーム終了
 			WaitKey();
-			break;
+			return;
 		}
 
 		//チーズの取得判定
@@ -204,7 +201,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 
 				//ゲーム終了
 				WaitKey();
-				break;
+				return;
 			}
 		}
 
@@ -220,7 +217,35 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		//ESCキーで終了
 		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) break;
 	}
+}
 
+int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _In_ LPSTR lpCmdLine, _In_ int nCmdShow) {
+	//全画面表示の終了
+	ChangeWindowMode(TRUE);
+
+	//DXライブラリ初期化
+	if (DxLib_Init() == -1) return -1;
+
+	//乱数生成用
+	srand((unsigned int)time(NULL));
+	
+	while (TRUE) {
+		//ゲーム開始
+		GameManager();
+
+		//スクリーンのクリア
+		ClearDrawScreen();
+
+		//速度制限
+		WaitTimer(20);
+
+		//windowsメッセージ処理
+		if (ProcessMessage() == -1) break;
+
+		//ESCキーで終了
+		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) break;
+
+	}
 	DxLib_End();
 
 	return 0;
