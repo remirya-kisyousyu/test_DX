@@ -246,6 +246,7 @@ int WINAPI WinMain(_In_ HINSTANCE hInstance, _In_opt_ HINSTANCE hPrevInstance, _
 		if (CheckHitKey(KEY_INPUT_ESCAPE) == 1) break;
 
 	}
+	
 	DxLib_End();
 
 	return 0;
